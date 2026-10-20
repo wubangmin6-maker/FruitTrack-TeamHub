@@ -678,11 +678,61 @@ body { overflow-x: hidden; background: var(--page); color: var(--ink); }
 .task-execution-record [data-task-status="blocked"] { border-color: var(--danger-line); color: var(--red); }
 .task-execution-record [role="status"] { margin: 12px 0 0; }
 .task-status { font-size: 14px; font-weight: 650; line-height: 1.7; }
+.topbar-role-switcher { display: flex; flex: 0 0 auto; align-items: center; gap: 5px; }
+.topbar-role-button, .topbar-role-return {
+  display: inline-flex;
+  min-width: 35px;
+  min-height: 35px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: var(--panel);
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.topbar-role-button:hover, .topbar-role-return:hover { border-color: var(--mint); color: var(--mint); }
+.topbar-role-button.active { border-color: var(--mint); background: var(--brand-soft); color: var(--mint); box-shadow: inset 0 -2px 0 var(--mint); }
+.topbar-role-return { margin-left: 3px; border-color: var(--brand-line); color: var(--mint); white-space: nowrap; }
+.topbar-role-button:focus-visible, .topbar-role-return:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.role-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin: 0 0 20px;
+  padding: 11px 14px;
+  border: 1px solid var(--brand-line);
+  border-radius: 11px;
+  background: var(--brand-soft);
+}
+.role-context-main, .role-context-current { color: var(--muted); font-size: 14px; line-height: 1.55; }
+.role-context-main { font-weight: 650; color: var(--ink); }
+.role-context-current { flex: 1; }
+.role-explorer {
+  margin: 0 0 18px;
+  padding: 10px 13px;
+  border-left: 3px solid var(--mint);
+  border-radius: 0 9px 9px 0;
+  background: var(--panel-soft);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
 
 @media (max-width: 720px) {
+  .topbar-role-switcher { order: 2; width: 100%; flex-wrap: wrap; }
+  .topbar-role-button, .topbar-role-return { min-height: 38px; }
   .nav a { min-height: 40px; font-size: 12px; }
   .button, .button-secondary, .scope-button, .role-switch { font-size: 13px; }
   .task-detail-context, .task-detail-outcomes, .task-record-fields { grid-template-columns: minmax(0, 1fr); }
   .task-detail-context .task-detail-section + .task-detail-section,
   .task-detail-outcomes .task-detail-section + .task-detail-section { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
+  .role-context { align-items: flex-start; flex-direction: column; }
+  .role-context-current { flex: 0 0 auto; }
 }

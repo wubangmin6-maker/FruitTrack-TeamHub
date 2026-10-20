@@ -3,6 +3,8 @@
   const hub = root.FruitTrackMember;
   const Roles = hub.Roles, Content = hub.Content;
   const THEME_STORAGE_KEY = 'fruittrack.member.ui-theme.v1';
+  const BROWSEABLE_ROUTES = new Set(['learning', 'practice', 'tasks', 'notes', 'progress']);
+  const BROWSE_ROLE_KEY_PREFIX = 'fruittrack.member.browse-role.v1.';
   const fixedRoleValue = document.body && document.body.getAttribute('data-fixed-role');
   const fixedRoleId = fixedRoleValue && Roles.get(fixedRoleValue) ? fixedRoleValue : null;
   const fixedEntry = fixedRoleValue !== null && fixedRoleValue !== undefined;
@@ -43,6 +45,50 @@
     startupError = new Error('本岗位本机档案与固定入口不匹配。为保护记录，页面没有切换或覆盖该档案。');
     model = null;
   }
+  function savedBrowseRole() {
+    if (!model) return null;
+    try {
+      const saved = browserStorage.getItem(BROWSE_ROLE_KEY_PREFIX + model.memberId);
+      return Roles.get(saved) ? saved : null;
+    } catch (error) { return null; }
+  }
+  function persistBrowseRole(roleId) {
+    if (!model || !Roles.get(roleId)) return false;
+    try {
+      browserStorage.setItem(BROWSE_ROLE_KEY_PREFIX + model.memberId, roleId);
+      return true;
+    } catch (error) {
+      message('当前浏览岗位未能记入本机偏好；课程和学习记录仍按岗位分别保存。');
+      return false;
+    }
+  }
+  function roleForRouteParams(params) {
+    if (!params) return null;
+    const linkedItems = [
+      params.course && hub.Curriculum.course(params.course),
+      params.exercise && hub.Curriculum.exercise(params.exercise),
+      params.practice && hub.Curriculum.practice(params.practice)
+    ];
+    const linked = linkedItems.find(item => item && Roles.get(item.roleId));
+    return linked ? linked.roleId : null;
+  }
+  function currentBrowseRoleId() {
+    if (!model) return null;
+    if (!BROWSEABLE_ROUTES.has(route)) return model.roleId;
+    const explicit = Roles.get(routeParams.role);
+    if (explicit) return explicit.id;
+    const linkedRole = roleForRouteParams(routeParams);
+    if (linkedRole) return linkedRole;
+    return savedBrowseRole() || model.roleId;
+  }
+  function switchBrowseRole(roleId) {
+    const role = Roles.get(roleId);
+    if (!model || !role) return;
+    courseScope = 'role';
+    persistBrowseRole(role.id);
+    const targetRoute = BROWSEABLE_ROUTES.has(route) ? route : 'learning';
+    navigate(targetRoute, {role: role.id});
+  }
   function el(tag, className, text) {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -67,6 +113,9 @@
     const topbar = document.querySelector('.topbar');
     if (!topbar) return;
     const actions = el('div', 'topbar-actions');
+    const roleSwitcher = el('div', 'topbar-role-switcher'); roleSwitcher.id = 'topbar-role-switcher';
+    roleSwitcher.setAttribute('role', 'group'); roleSwitcher.setAttribute('aria-label', '切换当前学习岗位');
+    actions.append(roleSwitcher);
     const settingsLink = topbar.querySelector('.settings-link');
     if (settingsLink) actions.append(settingsLink);
     const toggle = button('', () => applyTheme(theme === 'dark' ? 'light' : 'dark', true), 'theme-toggle');
@@ -125,6 +174,48 @@
     const role = Roles.get(roleId);
     return role ? role.id + ' · ' + role.name : '未选择岗位';
   }
+  function renderTopbarRoleSwitcher() {
+    const switcher = byId('topbar-role-switcher');
+    if (!switcher) return;
+    switcher.replaceChildren();
+    const activeRoleId = currentBrowseRoleId();
+    Roles.list().forEach(role => {
+      const active = role.id === activeRoleId;
+      const choice = button(role.id, () => switchBrowseRole(role.id), 'topbar-role-button' + (active ? ' active' : ''), {
+        'data-topbar-role': role.id,
+        'data-main-role-choice': String(role.id === model.roleId),
+        'aria-label': '切换当前学习岗位到 ' + role.id + '：' + role.name,
+        'aria-pressed': String(active),
+        title: role.id + ' · ' + role.name
+      });
+      switcher.append(choice);
+    });
+    const returnButton = button('返回主岗 ' + model.roleId, () => switchBrowseRole(model.roleId), 'topbar-role-return', {
+      'data-topbar-return-main': 'true',
+      'aria-label': '返回主岗位 ' + model.roleId,
+      title: '返回主岗位：' + roleLabel(model.roleId)
+    });
+    switcher.append(returnButton);
+  }
+  function renderRoleContext(content) {
+    if (!BROWSEABLE_ROUTES.has(route)) return;
+    const browsingRoleId = currentBrowseRoleId();
+    const context = el('aside', 'role-context'); context.id = 'role-context';
+    context.setAttribute('data-main-role', model.roleId);
+    context.setAttribute('data-current-role', browsingRoleId);
+    context.setAttribute('aria-label', '当前岗位浏览状态');
+    append(context,
+      el('span', 'role-context-main', '主岗位：' + roleLabel(model.roleId)),
+      el('span', 'role-context-current', '当前浏览：' + roleLabel(browsingRoleId))
+    );
+    content.append(context);
+  }
+  function renderRoleExplorer(content, browsingRoleId) {
+    const section = el('aside', 'role-explorer'); section.id = 'role-explorer';
+    section.setAttribute('aria-label', '岗位浏览状态');
+    section.textContent = '主岗位：' + roleLabel(model.roleId) + ' · 当前浏览：' + roleLabel(browsingRoleId) + '。可从工作台顶部直接切换岗位；各岗位学习记录分别保存，跨岗位学习不会更改主岗位。固定入口不验证身份，多人共用浏览器时无法保证个人记录隔离。';
+    content.append(section);
+  }
   function renderRolePicker() {
     byId('role-picker').hidden = false;
     byId('member-shell').hidden = true;
@@ -177,6 +268,7 @@
       return;
     }
     creatingProfile = false;
+    persistBrowseRole(role.id);
     route = 'home'; courseScope = 'role';
     location.hash = '#home';
     render();
@@ -185,6 +277,7 @@
     if (fixedEntry) { showError(new Error('固定岗位入口不能切换本机成员档案。')); return; }
     try { model = Store.setActiveMember(memberId); }
     catch (error) { byId('picker-message').textContent = '无法打开成员档案：' + error.message; return; }
+    persistBrowseRole(model.roleId);
     creatingProfile = false; route = 'home'; courseScope = 'role'; location.hash = '#home'; render();
   }
   function renderNav() {
@@ -202,7 +295,8 @@
       nav.append(group);
     });
     byId('current-role-label').textContent = roleLabel(model.roleId);
-    byId('topbar-role').textContent = model.displayName ? model.displayName + ' · ' + roleLabel(model.roleId) : roleLabel(model.roleId);
+    byId('topbar-role').textContent = (model.displayName ? model.displayName + ' · ' : '') + '主岗位 ' + roleLabel(model.roleId);
+    renderTopbarRoleSwitcher();
   }
   function completeCourse(roleId, courseId) {
     const saved = saveChange(candidate => {
@@ -268,12 +362,14 @@
   function renderLearning() {
     const content = byId('page-content');
     if (routeParams.course) { Daily.course(content, routeParams.course); return; }
-    append(content, heading('学习中心', roleLabel(model.roleId).toUpperCase(), '查看本岗位的苹果检测课程样例，也可浏览其他岗位的公开课程。'));
+    const browsingRoleId = currentBrowseRoleId();
+    append(content, heading('学习中心', roleLabel(browsingRoleId).toUpperCase(), '查看当前浏览岗位的苹果检测课程；可自由探索其他岗位，进度按岗位分别保存。'));
+    renderRoleExplorer(content, browsingRoleId);
     const scopes = el('div', 'scope-row');
-    scopes.append(button('本岗位课程', () => { courseScope = 'role'; render(); }, 'scope-button' + (courseScope === 'role' ? ' active' : ''), {'data-course-scope': 'role'}));
-    scopes.append(button('查看所有岗位选修课', () => { courseScope = 'all'; render(); }, 'scope-button' + (courseScope === 'all' ? ' active' : ''), {'data-course-scope': 'all'}));
+    scopes.append(button('当前浏览岗位课程', () => { courseScope = 'role'; render(); }, 'scope-button' + (courseScope === 'role' ? ' active' : ''), {'data-course-scope': 'role'}));
+    scopes.append(button('查看所有岗位课程', () => { courseScope = 'all'; render(); }, 'scope-button' + (courseScope === 'all' ? ' active' : ''), {'data-course-scope': 'all'}));
     content.append(scopes);
-    const visibleRoles = courseScope === 'all' ? Roles.ids : [model.roleId];
+    const visibleRoles = courseScope === 'all' ? Roles.ids : [browsingRoleId];
     const grid = el('div', 'card-grid'); visibleRoles.forEach(id => grid.append(courseCard(id)));
     content.append(grid);
     Daily.catalog(content, visibleRoles);
@@ -282,9 +378,9 @@
     content.append(banner);
   }
   function renderPractice() {
-    const roleId = model.roleId, sample = Content.role(roleId), content = byId('page-content');
+    const roleId = currentBrowseRoleId(), sample = Content.role(roleId), content = byId('page-content');
     if (routeParams.exercise) { Daily.exercise(content, routeParams.exercise); return; }
-    append(content, heading('练习中心', roleLabel(model.roleId).toUpperCase(), '通过短练习检查概念和方法；答案只用于本地自查，不会提交到任何服务。'));
+    append(content, heading('练习中心', roleLabel(roleId).toUpperCase(), '通过短练习检查概念和方法；答案只用于本地自查，不会提交到任何服务。'));
     const grid = el('div', 'card-grid'); grid.append(exerciseCard(sample.exercise)); content.append(grid);
     const previous = [...model.exerciseResultsByRole[roleId]].reverse().find(item => item.exerciseId === sample.course.id);
     const form = el('section', 'profile-card');
@@ -298,9 +394,9 @@
     const note = el('p', 'stage-note'); note.id = 'practice-stage-note'; note.textContent = '当前保存的是个人练习记录；团队成果提交与管理员反馈后续阶段开放。'; content.append(note);
   }
   function renderTasks() {
-    const roleId = model.roleId, sample = Content.role(roleId), content = byId('page-content');
+    const roleId = currentBrowseRoleId(), sample = Content.role(roleId), content = byId('page-content');
     if (routeParams.practice) { Daily.practice(content, routeParams.practice); return; }
-    append(content, heading('实践任务', roleLabel(model.roleId).toUpperCase(), '每个岗位提供一个范围清楚、产物可检查的起步任务。'));
+    append(content, heading('实践任务', roleLabel(roleId).toUpperCase(), '每个岗位提供一个范围清楚、产物可检查的起步任务。'));
     content.append(taskCard(sample.task));
     const taskId = 'starter-' + roleId;
     const record = model.practiceTasksByRole[roleId][taskId] || {status: 'not_started', deliverable: ''};
@@ -321,27 +417,27 @@
     const note = el('p', 'stage-note'); note.id = 'task-stage-note'; note.textContent = '个人记录不会提交给管理员；正式团队任务分配与成果提交后续阶段开放。'; content.append(note);
   }
   function renderNotes() {
-    const content = byId('page-content');
-    append(content, heading('我的笔记', roleLabel(model.roleId).toUpperCase(), '把课程疑问、数据检查发现或测试观察保存在当前成员档案中。'));
+    const roleId = currentBrowseRoleId(), content = byId('page-content');
+    append(content, heading('我的笔记', roleLabel(roleId).toUpperCase(), '把课程疑问、数据检查发现或测试观察保存在当前成员档案中。'));
     const note = el('div', 'info-banner'); note.id = 'notes-persistence-note';
     append(note, el('span', 'info-icon', 'i'), el('span', '', '笔记按成员编号和岗位分开保存在本机浏览器中。需要移动目录或更换浏览器时，请先在“数据与设置”导出备份。'));
     content.append(note);
-    const toolbar = el('div', 'notes-toolbar'); append(toolbar, el('p', '', '笔记归属：' + roleLabel(model.roleId)), el('span', 'badge', model.memberId));
+    const toolbar = el('div', 'notes-toolbar'); append(toolbar, el('p', '', '笔记归属：' + roleLabel(roleId)), el('span', 'badge', model.memberId));
     content.append(toolbar);
     const textarea = el('textarea', 'note-field'); textarea.id = 'member-note-draft'; textarea.setAttribute('aria-label', '本次会话笔记草稿');
-    textarea.value = model.notesByRole[model.roleId];
+    textarea.value = model.notesByRole[roleId];
     textarea.addEventListener('input', () => {
       const state = byId('note-draft-state');
-      if (!saveChange(candidate => { candidate.notesByRole[model.roleId] = textarea.value; }, '笔记已保存在本机。', state)) state.textContent = '保存失败：笔记未写入本机，请复制内容后重试。';
+      if (!saveChange(candidate => { candidate.notesByRole[roleId] = textarea.value; }, '笔记已保存在本机。', state)) state.textContent = '保存失败：笔记未写入本机，请复制内容后重试。';
     });
     content.append(textarea);
     const state = el('p', 'stage-note'); state.id = 'note-draft-state'; state.textContent = '笔记自动保存到当前成员档案；存储失败时页面会明确提示。';
     content.append(state);
   }
   function renderProgress() {
-    const role = currentRole(), sample = Content.role(role.id), content = byId('page-content');
-    append(content, heading('学习进度', roleLabel(model.roleId).toUpperCase(), '各岗位课程、练习、实践与每日任务分别统计，只显示个人实际记录。'));
-    Daily.progress(content);
+    const role = Roles.get(currentBrowseRoleId()), sample = Content.role(role.id), content = byId('page-content');
+    append(content, heading('学习进度', roleLabel(role.id).toUpperCase(), '各岗位课程、练习、实践与每日任务分别统计，只显示个人实际记录。'));
+    Daily.progress(content, role.id);
     const grid = el('div', 'card-grid');
     const completedCourses = model.learningProgressByRole[role.id].length;
     const exerciseCount = model.exerciseResultsByRole[role.id].length;
@@ -412,7 +508,7 @@
     const name = el('input', 'text-field'); name.id = 'display-name'; name.type = 'text'; name.maxLength = 40; name.value = model.displayName; name.placeholder = '可选';
     name.addEventListener('input', () => {
       if (saveChange(candidate => { candidate.displayName = name.value.trim(); }, '成员档案已保存在本机。', byId('settings-save-state'))) {
-        byId('topbar-role').textContent = model.displayName ? model.displayName + ' · ' + roleLabel(model.roleId) : roleLabel(model.roleId);
+        byId('topbar-role').textContent = (model.displayName ? model.displayName + ' · ' : '') + '主岗位 ' + roleLabel(model.roleId);
       }
     });
     append(profile, nameLabel, name);
@@ -449,7 +545,7 @@
     const backupStatus = el('p', 'stage-note'); backupStatus.id = 'backup-status'; backupStatus.textContent = '恢复前会校验文件格式、版本和成员身份；覆盖同一 memberId 前需要再次确认。';
     append(backup, importLabel, fileInput, backupStatus);
     content.append(backup);
-    const local = el('p', 'stage-note'); local.textContent = '页面完全离线运行。浏览器本地数据按文件路径和浏览器隔离；不要把浏览器存储当作跨目录迁移工具。'; content.append(local);
+    const local = el('p', 'stage-note'); local.textContent = '页面完全离线运行。浏览器本地数据按文件路径和浏览器隔离；固定入口不验证身份，多人共用浏览器时无法保证个人记录隔离。不要把浏览器存储当作跨目录迁移工具。'; content.append(local);
     Daily.settings(content);
   }
   const renderers = {home: renderHome, daily: () => Daily.render(byId('page-content')), learning: renderLearning, practice: renderPractice, tasks: renderTasks, notes: renderNotes, progress: renderProgress, settings: renderSettings};
@@ -478,14 +574,21 @@
     try { const parsed = readRoute(); route = parsed.name; routeParams = parsed.params; }
     catch (error) { route = 'home'; routeParams = {}; }
     if (!renderers[route]) { route = 'home'; routeParams = {}; location.hash = '#home'; }
+    if (BROWSEABLE_ROUTES.has(route)) {
+      const roleId = (Roles.get(routeParams.role) || {id: null}).id || roleForRouteParams(routeParams) || savedBrowseRole() || model.roleId;
+      routeParams.role = roleId;
+      persistBrowseRole(roleId);
+    }
     renderNav();
     const content = byId('page-content'); content.replaceChildren();
-    try { renderers[route](); }
+    try { renderRoleContext(content); renderers[route](); }
     catch (error) { showError(error); }
   }
   function navigate(id, params = {}) {
     if (!renderers[id]) { showError(new Error('未知页面：' + id)); return; }
-    const query = Object.entries(params).map(([key, value]) => encodeURIComponent(key) + '=' + encodeURIComponent(value)).join('&');
+    const nextParams = {...params};
+    if (BROWSEABLE_ROUTES.has(id) && !Roles.get(nextParams.role)) nextParams.role = currentBrowseRoleId();
+    const query = Object.entries(nextParams).map(([key, value]) => encodeURIComponent(key) + '=' + encodeURIComponent(value)).join('&');
     const hash = '#' + id + (query ? '?' + query : '');
     if (location.hash === hash) render();
     else location.hash = hash;

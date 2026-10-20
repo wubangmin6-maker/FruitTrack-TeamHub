@@ -42,7 +42,7 @@
       }
       return profile;
     }
-    function views() { const profile = sync(); return Curriculum.tasks(profile.roleId).map(task => Tasks.view(task, profile)); }
+    function views(roleId) { const profile = sync(); return Curriculum.tasks(roleId || profile.roleId).map(task => Tasks.view(task, profile)); }
     function allDefinitions() { return hub.Roles.ids.flatMap(role => Curriculum.tasks(role)); }
     function taskFor(field, id) { return allDefinitions().find(task => task[field] === id); }
     function statusText(view) { return labels[view.status] + (view.isOverdue ? ' · 逾期' : ''); }
@@ -105,9 +105,9 @@
     }
     function links(task) {
       const row = el('div', 'button-row');
-      row.append(button('学习课程', () => navigate('learning', {course: task.courseId}), {'data-task-link': 'course'}),
-        button('完成练习', () => navigate('practice', {exercise: task.exerciseId}), {'data-task-link': 'exercise'}),
-        button('实践步骤', () => navigate('tasks', {practice: task.practiceId}), {'data-task-link': 'practice'}));
+      row.append(button('学习课程', () => navigate('learning', {course: task.courseId, role: task.roleId}), {'data-task-link': 'course'}),
+        button('完成练习', () => navigate('practice', {exercise: task.exerciseId, role: task.roleId}), {'data-task-link': 'exercise'}),
+        button('实践步骤', () => navigate('tasks', {practice: task.practiceId, role: task.roleId}), {'data-task-link': 'practice'}));
       row.classList.add('task-detail-links');
       return row;
     }
@@ -280,7 +280,7 @@
         badges.append(el('span', 'badge', roleBadge), el('span', task.required && roleId === getProfile().roleId ? 'badge' : 'badge elective', kindBadge),
           el('span', 'badge', lessonTypeLabels[task.lessonType]), el('span', completed ? 'badge course-complete' : 'badge course-open', completed ? '已学会' : '未标记'));
         card.append(badges, el('span', 'course-week-label', '第 ' + task.week + ' 周'), el('h3', '', task.title), el('p', '', task.learningObjectives.join('；')),
-          button(completed ? '重新阅读课程' : '开始学习', () => navigate('learning', {course: task.courseId}), {'data-open-course': task.courseId}));
+          button(completed ? '重新阅读课程' : '开始学习', () => navigate('learning', {course: task.courseId, role: roleId}), {'data-open-course': task.courseId}));
         grid.append(card);
       }));
       section.append(grid, button('查看12周路线图', () => { sync(); state.view = 'roadmap'; navigate('daily'); })); content.append(section);
@@ -373,7 +373,7 @@
       const status = el('p', 'stage-note', '实践和每日任务分别保存，避免课程操作误改任务完成状态。'); status.id = 'task-save-state';
       section.append(statusLabel, select, textLabel, deliverable, button('保存实践记录', () => saveChange(candidate => { candidate.practiceTasksByRole[practice.roleId][practiceId] = {status: select.value, deliverable: deliverable.value, updatedAt: new Date().toISOString()}; }, '实践记录已保存在本机。', status)), status, links(task)); content.append(section);
     }
-    function progress(content) { const section = panel('每日任务进度'); const items = views(); const required = items.filter(task => task.required !== false).length; section.append(summary(items), el('p', '', '当前岗位已开放' + required + '节必修课；选修课程仍可记录进度，但不进入必修分母或逾期统计。周日和待开放周次不计入分母。')); content.append(section); }
+    function progress(content, roleId = getProfile().roleId) { const section = panel('每日任务进度'); const items = views(roleId); const required = items.filter(task => task.required !== false).length; section.append(summary(items), el('p', '', '当前浏览岗位 ' + roleId + ' 已开放' + required + '节必修课；选修课程仍可记录进度，但不进入必修分母或逾期统计。周日和待开放周次不计入分母。')); content.append(section); }
     function settings(content) {
       const section = panel('项目计划日期');
       section.append(el('p', '', '默认开始日期为2026-10-19。请选择周一；修改只重排没有个人记录的任务，已有任务记录保留原计划日期和完成时间。'));
