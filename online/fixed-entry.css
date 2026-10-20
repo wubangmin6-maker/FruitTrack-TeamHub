@@ -1,0 +1,19 @@
+.fixed-role-note {
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 12px 0 0;
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--mint);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: none;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.fixed-role-profile-grid {
+  grid-template-columns: minmax(0, 1fr);
+}

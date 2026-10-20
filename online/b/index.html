@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="FruitTrack Team Hub · B 岗位学习入口">
+  <title>FruitTrack Team Hub · B 数据标注与视频素材</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%238cdbb0'/%3E%3Cpath d='M16 11C7 6 6 19 12 25c2 2 3-1 5 0 5 3 12-14 4-15-2 0-3 1-5 1m0-1q0-6 6-6q0 6-6 6' fill='%23182721'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../member/css/member.css">
+  <link rel="stylesheet" href="../fixed-entry.css">
+  <script defer src="../../member/js/roles.js"></script>
+  <script defer src="../../member/js/content.js"></script>
+  <script defer src="../../member/js/curriculum-w2w4-a.js"></script>
+  <script defer src="../../member/js/curriculum-w2w4-b.js"></script>
+  <script defer src="../../member/js/curriculum-w2w4-c.js"></script>
+  <script defer src="../../member/js/curriculum-w2w4-d.js"></script>
+  <script defer src="../../member/js/curriculum-w2w4-e.js"></script>
+  <script defer src="../../member/js/curriculum-quality.js"></script>
+  <script defer src="../../member/js/curriculum.js"></script>
+  <script defer src="../../member/js/tasks.js"></script>
+  <script defer src="../../member/js/storage.js"></script>
+  <script defer src="../../member/js/daily-ui.js"></script>
+  <script defer src="../../member/js/app.js"></script>
+</head>
+<body data-fixed-role="B">
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
+  <main id="main" tabindex="-1">
+    <section id="role-picker" class="role-picker" aria-labelledby="picker-title" hidden>
+      <div class="picker-brand"><span class="brand-mark" aria-hidden="true">F</span><span>FruitTrack <b>Team Hub</b></span></div>
+      <p class="eyebrow">MEMBER WORKSPACE · FIXED ROLE ENTRY</p>
+      <h1 id="picker-title">岗位入口配置</h1>
+      <button id="create-member-profile" type="button" hidden></button>
+      <p id="picker-message" class="inline-message" role="status" aria-live="polite"></p>
+    </section>
+    <section id="member-shell" class="member-shell" hidden>
+      <aside class="sidebar">
+        <a class="brand" href="#home" aria-label="FruitTrack 成员首页">
+          <span class="brand-mark" aria-hidden="true">F</span>
+          <span>FruitTrack <b>Team Hub</b><small>MEMBER WORKSPACE</small></span>
+        </a>
+        <div class="role-chip"><span class="role-dot"></span><span id="current-role-label"></span></div>
+        <nav id="nav" class="nav" aria-label="成员工作台导航"></nav>
+        <div class="sidebar-foot"><span class="offline-dot"></span>离线可用 <span class="version-label">固定岗位入口</span></div>
+      </aside>
+      <div class="workspace">
+        <header class="topbar">
+          <div><span class="topbar-kicker">FRUITTRACK · MEMBER</span><span id="topbar-role" class="topbar-role"></span></div>
+          <a class="settings-link" href="#settings"><span aria-hidden="true">⚙</span> 数据与设置</a>
+        </header>
+        <div class="fixed-role-note" role="note">当前入口固定为 B · 数据标注与视频素材。这是便于访问的本地岗位入口，不验证实际身份，链接可能被转发。</div>
+        <section id="app-error" class="app-error" role="alert" hidden></section>
+        <div id="member-notice" class="member-notice" role="status" aria-live="polite"></div>
+        <div id="page-content" class="page-content"></div>
+        <footer class="workspace-foot">FruitTrack Team Hub <span>本地运行 · 不连接网络</span></footer>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
