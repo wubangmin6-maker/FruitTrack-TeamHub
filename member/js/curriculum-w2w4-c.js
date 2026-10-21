@@ -74,25 +74,30 @@
   });
 
   add(2, 3, {
-    title: '把验收句写成可判定断言', minutes: 40,
-    objectives: ['把模糊要求改写为输入与可观察输出', '区分精确断言和需要确认的容差'],
-    prerequisites: ['能区分用例期望与实际；会比较整数'],
-    steps: ['读三条模糊需求和给定规则。', '为每条写输入、比较式、失败信息。', '对未定义容差标待产品确认。'],
-    deliverable: '三条 ASSERT-03 断言及一条待确认容差问题。',
-    acceptance: ['零值与负数断言有精确期望', '未擅自把“接近”改成自定阈值'],
-    structure: [{title: '断言形式', points: ['断言包含输入、观察字段、比较值。', '失败信息应指出实际与期望。']}, {title: '容差来源', points: ['业务没有批准的阈值只能写待确认。', '教学阈值只能在明确标为模拟时使用。']}],
-    explanation: ['“显示正确”不是可以稳定判定的标准。写成“输入零时显示字段 count 等于 0”，审核者便能看出该比什么，失败时也能知道偏离多少。', '精确的格式规则可直接形成断言；“误差小一点”缺少容差，不能由测试岗随手定为一只或百分之十。把未决条件记录下来，是合格的测试设计。'],
-    example: 'FruitTrack 教学模拟要求空帧手工数为 0；ASSERT-03B 写 count===0。若未来产品允许一只误差，那是另一个经确认的规则，不能覆盖当前零值断言。',
-    materialTitle: '教学模拟验收草稿 ASSERT-03',
-    material: '草稿 A：“合法输入能显示数字”；B：“空帧显示正确”；C：“预测数与人工数接近”。已给纸面规则：人工输入 2 应显示 count=2，输入 0 应显示 count=0，输入 -1 应显示 error:negative。预测容差没有定义；无真实界面或输出。',
-    worked: {title: '落地空帧断言', given: '模拟输入为人工计数 n=0，规则要求显示 count=0。', steps: ['确定观察字段是输出文字中的 count。', '写比较式 display===“count=0”。', '失败信息保留得到的文字和期望文字，实际值待执行。'], answer: 'ASSERT-03B：给 n=0 并提交，期望 display===“count=0”；否则记录实际 display 与期望。该断言是设计，不是通过报告。'},
-    prompt: '把草稿 A 改成针对输入 2 的断言，并说明草稿 C 为何不能直接判定通过；所有材料均为教学模拟。',
-    answer: '输入 2 后断言显示文字严格等于 count=2，并在失败时保存实际文字。C 缺少预测与人工真值之间的允许差值以及适用场景，需确认阈值后才可判定。',
-    answerExplanation: 'A 的纸面规则已经提供精确输出，因此能写等值比较。C 只有形容词“接近”，不同测试者会得出不同结论。',
-    grading: ['写出 n=2 和 count=2', '说明实际值需保存', '指出容差未知需确认'],
-    practiceSteps: ['为输入 2、0、-1 编写断言。', '给每个断言写清观察字段和失败记录。', '把预测容差列为待确认问题，不预填通过状态。'],
-    practiceDeliverable: 'ASSERT-03 三条可执行判定句。',
-    practiceAcceptance: ['三条期望均来自给定规则', '容差问题清楚记录且无虚构测试结果']
+    title: '把验收句写成可判定断言', minutes: 55,
+    objectives: ['用自己的话说明测试用例、函数与assert断言分别做什么', '根据给定整数契约写正常、零边界与负数异常三类测试', '独立完成可运行的pytest模拟文件，分开记录期望、实际与未执行事项', '解释一条错误断言为何失败，并将未定义的预测容差保留待确认'],
+    prerequisites: ['能区分期望与实际；认识整数2、0、-1；不要求接触FruitTrack核心源码', '课程网页可完全离线阅读，不需要Python；实际运行.py练习须电脑已具备Python 3和pytest', '若python命令或pytest缺失，停止运行并请项目负责人提供已准备好的环境；本课不要求安装新依赖，也不用真实模型、视频或付费工具'],
+    steps: ['先读整数输入契约，为2、0、-1各写出输出期望；暂不填实际通过。', '理解函数、测试用例、assert和pytest的联系，再阅读4、0、-2的完整例题。', '独立在test_count_sim.py中写题设模拟函数和正常2、边界0、异常-1三个测试；暂不展开参考答案。', '分析给定的错误断言：实际和期望各是什么，失败能证明什么，不能证明什么。', '仅在已有Python与pytest的条件下，在保存文件的目录在准备好的Python环境执行PowerShell命令；记录实际命令、输出和日期。', '按验收清单核对.py、三行用例表和待确认容差；未运行就如实写未执行，不从示例预填通过。'],
+    deliverable: 'test_count_sim.py完整模拟文件、正常/边界/异常三行用例记录、错误断言分析及一条待确认预测容差；可附实际日志，未运行时明确写未执行。',
+    acceptance: ['文件包含题设display_count和三个独立test_函数，2→count=2、0→count=0、-1→error:negative', '指出错误断言把期望写成count=3，而题设n=2的实际返回应为count=2', '期望与实际分栏；缺环境时不编造pytest通过日志，模拟程序通过也不代表真实FruitTrack通过', '对“预测数接近人工数”注明容差和适用场景待负责人确认，不自行设阈值'],
+    structure: [
+      {title: '输入规则先于测试代码', points: ['本课SIMULATED契约只讨论整数n：n≥0返回字符串count=n；n<0返回字符串error:negative。0属于合法边界。', '真实FruitTrack的检测器、视频读取和界面均不在这个函数内；小数、字符串等非整数行为未定义，本课不补猜测规则。']},
+      {title: '函数、用例与断言的关系', points: ['函数是可以按名称调用的一段操作：display_count(2)把整数2交给函数，return把结果交回来。字符串是一段文字，如"count=2"。', '测试用例说明输入、操作、期望和实际；assert是Python的检查语句。assert 实际值 == 期望值使用双等号比较，不是单等号赋值；相等才继续，不等则失败。', 'def test_normal():定义一个测试函数，冒号后同层代码缩进四个空格。pytest寻找文件中以test_开头的函数，逐个执行并汇总。pytest是测试工具，不是苹果检测模型。']},
+      {title: '三类输入各有检查目的', points: ['正常用例选正整数，如2，验证普通计数文字；边界用例选0，验证n≥0包含等于零。', '异常用例选负整数，如-1，按本课契约检查error:negative；这里异常指非法输入，规则返回文字，不要求抛Python异常。', '一个测试写一个主要判定，便于定位失败。程序实际返回值和测试中写的期望值都需要检查，不能一看到红灯就判定业务代码错误。']},
+      {title: '证据、失败与容差', points: ['未运行只能给设计期望，不能写实际通过；运行了教学函数只证明这份模拟代码在所记环境的指定用例情况。', '精确字符串契约可以直接比较；“预测数与人工数接近”没有定义允许差值、样本和适用场景，容差必须待确认，不能擅自改成1只或10%。']}
+    ],
+    explanation: ['测试像一张核对单：先写清希望看到什么，再观察程序实际给什么。“能显示数字”太宽泛；n=2时严格等于"count=2"才是这份契约下能判断的句子。这里先把显示逻辑缩成一个小函数，避免把安装视觉模型和学断言混在一起。', '函数定义def display_count(n):只是给操作起名字；执行display_count(2)才产生一次调用。if n < 0检查是否负数；负数分支return "error:negative"；其余整数执行return f"count={n}"，其中{n}把输入数字放进文字。请保留缩进和英文引号。', '测试中的assert display_count(2) == "count=2"先调用函数取得实际值，再和期望字符串比较。pytest按test_名称发现这些检查。正常、边界、异常三个用例分别讲清检查目的；0不是负数，因此不能期待error:negative。', '假设写成assert display_count(2) == "count=3"，依题设实际应是count=2，所以这条比较必然不成立。它首先暴露的是测试期望与契约冲突，不能据此声称真实FruitTrack计数Bug。示例失败说明是教学推演，不是你电脑上的实际日志。', '网页材料可以离线阅读；真正运行.py文件则需要本机已经装好Python和pytest。请先请负责人核对环境。执行后保存真实命令和输出，缺环境或未执行就保留未运行，不能复制“3 passed”当自己的证据。本课不运行真实 FruitTrack，也不判定检测误差的未知容差。'],
+    example: 'FruitTrack未来可能需要验证“人工输入0时显示零、负数被拒绝”的规则。此处用完全独立的SIMULATED display_count演示如何把规则变成自动化检查，不导入FruitTrack模块，不读取图像或视频，也不验证检测、跟踪、跨帧去重计数或真实界面。',
+    materialTitle: 'ASSERT-03教学模拟契约、运行条件与记录表',
+    material: '契约（SIMULATED）：输入为整数n；n≥0返回f"count={n}"，n<0返回"error:negative"。本课未定义非整数处理，也未定义预测误差容差。\n用例表头：ID｜类型｜输入｜期望｜实际｜执行状态｜环境与命令。练习三行：C03-N｜正常｜2｜count=2｜未运行｜待执行；C03-B｜边界｜0｜count=0｜未运行｜待执行；C03-E｜异常｜-1｜error:negative｜未运行｜待执行。\n实际运行需要已有Python 3和pytest。网页阅读不需要它们。PowerShell使用负责人已准备且含pytest的Python环境，先进入自己保存.py文件的练习目录（不要进入FruitTrack-Vision改代码），优先执行：python -m pytest test_count_sim.py -q。若已核对py -3指向同一准备好的Python环境，也可执行：py -3 -m pytest test_count_sim.py -q。激活虚拟环境后，py -3不一定使用该环境，不能仅凭已激活就认为两条命令等价\n若提示找不到python、Python或No module named pytest，请停止并请负责人提供已准备好的环境，本课不自动安装。预期示意仅为三个正确模拟测试可通过，不预填任何实际输出；你的终端日志才是执行证据。',
+    worked: {title: '完整例题：正常4、边界0、异常-2', given: '本例文件名test_count_example_sim.py；只测试上面的整数返回文字契约。正常4、边界0、负数-2是例题输入，练习要另写2、0、-1。示例代码不是FruitTrack实现。', steps: ['先由契约手算期望：4→count=4；0→count=0；-2→error:negative，不把手算写成实际日志。', '定义display_count，负数分支先return，其他整数由f字符串拼接。', '分别定义test_normal、test_zero_boundary、test_negative三个函数，每个只写一个assert。', '把下方完整代码保存为test_count_example_sim.py。在已有且含pytest的Python环境中可运行python -m pytest test_count_example_sim.py -q；只有核对py -3指向同一环境时才用py -3 -m pytest test_count_example_sim.py -q。没有环境就阅读并保留未执行。', 'pytest若报告失败，先核对实际与期望及抄写缩进；示例预期是3个检查符合契约，不能复制预期当实跑记录。'], answer: "# SIMULATED: integer-input teaching function, not the real product.\ndef display_count(n):\n    if n < 0:\n        return \"error:negative\"\n    return f\"count={n}\"\n\ndef test_normal():\n    assert display_count(4) == \"count=4\"\n\ndef test_zero_boundary():\n    assert display_count(0) == \"count=0\"\n\ndef test_negative():\n    assert display_count(-2) == \"error:negative\"\n"},
+    prompt: '请先独立写一份test_count_sim.py，不要照抄4、0、-2例题：保留同一教学模拟整数契约，使用正常n=2、边界n=0、异常n=-1三个test_函数；逐条写输入与期望。再分析错误断言assert display_count(2) == "count=3"：实际应是什么、期望错在哪里、失败能否证明真实FruitTrack有Bug？最后说明“预测数接近人工数”为何仍需确认容差。实际运行只在已有Python与pytest环境进行，未运行记录必须写未执行。',
+    answer: "# SIMULATED: integer-input teaching function, not the real product.\ndef display_count(n):\n    if n < 0:\n        return \"error:negative\"\n    return f\"count={n}\"\n\ndef test_normal():\n    assert display_count(2) == \"count=2\"\n\ndef test_zero_boundary():\n    assert display_count(0) == \"count=0\"\n\ndef test_negative():\n    assert display_count(-1) == \"error:negative\"\n",
+    answerExplanation: '提示1：先逐条读整数契约，在不运行代码时手算2、0、-1应得到的文字。区分正常正数、恰好为零的合法边界与负数异常输入；不要把预期结果填进实际栏。\n\n提示2：每个test_函数只写一次调用和一次assert，用==比较实际返回字符串与按契约得到的期望。检查英文引号、def后冒号和四空格缩进；错误断言可先把左右两边分开写在纸上，不必急着改函数。\n\n解析：正常2和边界0分别返回count=2、count=0；异常-1返回error:negative。故意写count=3的断言把期望值写错，左右不等应失败；这种教学失败不是FruitTrack真实缺陷证据。正确参考文件提供三个独立测试。未执行时保持未运行，缺Python或pytest请负责人协助；预测容差仍待确认。',
+    grading: ['给出自含display_count函数和2、0、-1三个test_函数，精确期望符合契约；不依赖业务源码', '解释0是合法边界、负数返回文字而非要求抛异常，能说清assert的实际与期望', '正确指出count=3错误期望，应失败但不证明真实FruitTrack故障', '保留真实执行或未执行状态、环境缺口及待确认容差，不自动评分或强制考试'],
+    practiceSteps: ['建立自己的练习目录，用文本编辑器创建test_count_sim.py，不覆盖核心视觉项目文件。页首标SIMULATED教学模拟。', '先独立实现题设display_count与2、0、-1三个test_函数；保存后对照检查缩进、引号、==。', '建立三行用例表，先填类型、输入与期望；实际、执行状态先写未运行。另写count=3错误断言的左右值和预期失败原因。', '请负责人提供已准备且含pytest的Python 3环境；在PowerShell进入此文件所在目录后优先执行python -m pytest test_count_sim.py -q。只有核对py -3指向同一准备好环境时，才可用py -3 -m pytest test_count_sim.py -q；激活虚拟环境不代表py -3一定使用它。出现No module named pytest或找不到解释器时，停止并记录缺口，请负责人协助，不安装、不伪造输出。', '若实际运行，保存原始命令、日期、解释器信息和完整输出；失败则保留失败，检查抄写或断言后记录修订。未运行者保留未执行并提交代码与手算分析。', '写一句模拟范围和一句容差待确认问题；核对本次没有测试真实视频、模型或FruitTrack界面。'],
+    practiceDeliverable: '自写test_count_sim.py、三行正常/边界/异常用例记录、错误断言分析与容差问题；若执行附真实PowerShell日志，否则明确未执行及环境缺口。',
+    practiceAcceptance: ['完整.py文件含模拟函数和三个独立测试，正常2、边界0、异常-1期望正确', '用例表分开期望和实际，不用参考“预期通过”填充真实运行栏', 'count=3错误断言分析包含实际count=2、期望count=3和预期失败，不夸大为真实产品Bug', '已运行者有自己的命令与原始输出，未运行者如实标未执行；不以环境缺失要求强制安装', '模拟范围及未知预测容差明确，无真实FruitTrack验证或强制考试认证断言']
   });
 
   add(2, 4, {

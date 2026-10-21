@@ -5,6 +5,18 @@
   const labels = {not_started: '未开始', in_progress: '进行中', completed: '已完成', blocked: '阻塞'};
   const lessonTypeLabels = {core_knowledge: '核心知识', core_practice: '基础实践', extension_knowledge: '拓展知识', reinforcement_exercise: '巩固练习', integrated_case: '综合案例'};
   const phaseLabels = {foundation: '基础理解', advanced: '技术进阶', integration: '综合应用'};
+  const demonstrationTaskId = 'FTM-A-W01-D03';
+  const originalDemonstrationTaskIds = new Set([demonstrationTaskId, 'FTM-B-W01-D02', 'FTM-C-W02-D03', 'FTM-D-W01-D01', 'FTM-E-W01-D04']);
+  const demonstrationTaskIds = new Set(hub.Roles.ids.flatMap(role => Curriculum.tasks(role).map(task => task.taskId)));
+  const releaseTaskIds = new Set(hub.Roles.ids.flatMap(role => Curriculum.tasks(role))
+    .filter(task => !(task.roleId === 'A' && task.week <= 2) && !originalDemonstrationTaskIds.has(task.taskId)).map(task => task.taskId));
+  const demonstrationHintLabels = {
+    A: ['提示1：先核对帧号', '提示2：再检查原视频分组'],
+    B: ['提示1：先查类别与五列格式', '提示2：再反算坐标和四条边'],
+    C: ['提示1：先写输入与期望', '提示2：再核对断言和失败信息'],
+    D: ['提示1：先分清计数口径', '提示2：再核对关联证据'],
+    E: ['提示1：先分开预期与实际', '提示2：再核对复现字段与证据']
+  };
 
   function create(options) {
     const {getProfile, saveChange, navigate, rerender} = options;
@@ -45,12 +57,27 @@
     function views(roleId) { const profile = sync(); return Curriculum.tasks(roleId || profile.roleId).map(task => Tasks.view(task, profile)); }
     function allDefinitions() { return hub.Roles.ids.flatMap(role => Curriculum.tasks(role)); }
     function taskFor(field, id) { return allDefinitions().find(task => task[field] === id); }
+    // Released lessons share the reviewed reading flow; original pilots keep their labels.
+    function demonstrationReferences(exercise) {
+      const [firstHint, secondHint, ...analysis] = exercise.explanation.split('\n\n');
+      const hints = [firstHint, secondHint].map((text, index) => {
+        const hint = el('details', 'check-panel'); hint.setAttribute('data-pilot-hint', String(index + 1));
+        const label = !originalDemonstrationTaskIds.has(exercise.id.replace(/-exercise$/, '')) && text ? text.split(/[。！？\n]/)[0] : demonstrationHintLabels[exercise.roleId][index];
+        hint.append(el('summary', '', label), el('p', '', text)); return hint;
+      });
+      const reference = el('details', 'check-panel'); reference.id = 'reference-answer'; reference.setAttribute('data-pilot-answer', 'true');
+      reference.append(el('summary', '', '独立尝试后查看参考答案与解析'), el('pre', 'lesson-material', exercise.answer),
+        el('h3', '', releaseTaskIds.has(exercise.id.replace(/-exercise$/, '')) ? '答案解析与常见错误' : '错误原因与检查解析'), el('p', '', analysis.join('\n\n')));
+      if (exercise.knowledgeChecks) reference.append(el('h3', '', '基础理解题参考答案'), el('p', '', exercise.knowledgeChecks.understanding.answer));
+      reference.append(el('h3', '', '自查标准（不自动评分）'), list(exercise.gradingCriteria));
+      return {hints, reference};
+    }
     function statusText(view) { return labels[view.status] + (view.isOverdue ? ' · 逾期' : ''); }
     function summary(items, id) {
       const counts = Tasks.stats(items), electives = items.filter(task => task.required === false);
       const electiveCompleted = electives.filter(task => task.status === 'completed').length;
-      const node = el('p', 'info-banner', '已开放 ' + items.length + ' 节课程 · 必修完成 ' + counts.completed + '/' + counts.total +
-        ' · 选修完成 ' + electiveCompleted + '/' + electives.length + ' · 必修逾期 ' + counts.overdue + ' · 必修阻塞 ' + counts.blocked);
+      const node = el('p', 'info-banner', '已开放 ' + items.length + ' 项每日任务 · 必修任务完成 ' + counts.completed + '/' + counts.total +
+        ' · 选修任务完成 ' + electiveCompleted + '/' + electives.length + ' · 必修任务逾期 ' + counts.overdue + ' · 必修任务阻塞 ' + counts.blocked);
       if (id) node.id = id;
       return node;
     }
@@ -227,7 +254,7 @@
       const monday = Tasks.addDays(todayDate, -((weekday + 6) % 7)), sunday = Tasks.addDays(monday, 6);
       const weeklyRequired = items.filter(task => task.required !== false && task.scheduledDate >= monday && task.scheduledDate <= sunday);
       const weeklyCompleted = weeklyRequired.filter(task => task.status === 'completed').length;
-      const nextCourse = requiredCourses.find(task => !completedCourses.includes(task.courseId)) || roleTasks[0];
+      const nextCourse = requiredCourses.find(task => !completedCourses.includes(task.courseId)) || roleTasks.find(task => !completedCourses.includes(task.courseId));
       const section = panel('今日学习与实践'); section.id = 'home-daily'; section.classList.add('home-dashboard');
       const overview = el('div', 'home-overview');
       const progress = el('div', 'home-progress-card');
@@ -242,7 +269,7 @@
       const weekValue = el('strong', '', weeklyCompleted + ' / ' + weeklyRequired.length); weekValue.id = 'home-week-progress';
       append(weekCard, weekValue, el('span', 'progress-caption', weeklyRequired.length ? monday + ' — ' + sunday + ' · 按任务状态记录' : '本周没有已开放的必修任务'));
       const continueCard = el('div', 'home-continue-card');
-      append(continueCard, el('p', 'eyebrow', '继续学习'), el('h3', '', nextCourse ? nextCourse.title : '当前课程已全部开放'), el('p', '', nextCourse ? '从上次学习进度继续；练习和实践可以按自己的节奏完成。' : '请查看每日任务或学习中心。'));
+      append(continueCard, el('p', 'eyebrow', '继续学习'), el('h3', '', nextCourse ? nextCourse.title : '已开放课程均已自评完成'), el('p', '', nextCourse ? '继续尚未自评完成的课程；练习和实践可以按自己的节奏完成。' : '可返回学习中心复习；每日任务状态仍单独记录。'));
       if (nextCourse) continueCard.append(button('打开课程', () => navigate('learning', {course: nextCourse.courseId}), {'data-continue-learning': nextCourse.courseId}));
       overview.append(progress, weekCard, continueCard); section.append(el('p', 'home-date-line', todayDate + ' · ' + profile.roleId + ' 岗位'), overview, summary(items));
       today.forEach(task => {
@@ -278,7 +305,7 @@
         const kindBadge = roleId !== getProfile().roleId ? '跨岗位选修' : task.required ? '必修' : '选修';
         const badges = el('div', 'course-card-badges');
         badges.append(el('span', 'badge', roleBadge), el('span', task.required && roleId === getProfile().roleId ? 'badge' : 'badge elective', kindBadge),
-          el('span', 'badge', lessonTypeLabels[task.lessonType]), el('span', completed ? 'badge course-complete' : 'badge course-open', completed ? '已学会' : '未标记'));
+          el('span', 'badge', lessonTypeLabels[task.lessonType]), el('span', completed ? 'badge course-complete' : 'badge course-open', completed ? '自评完成' : '未标记'));
         card.append(badges, el('span', 'course-week-label', '第 ' + task.week + ' 周'), el('h3', '', task.title), el('p', '', task.learningObjectives.join('；')),
           button(completed ? '重新阅读课程' : '开始学习', () => navigate('learning', {course: task.courseId, role: roleId}), {'data-open-course': task.courseId}));
         grid.append(card);
@@ -288,19 +315,29 @@
     function course(content, courseId) {
       const course = Curriculum.course(courseId), task = taskFor('courseId', courseId);
       if (!course || !task) throw new Error('没有找到这节已开放课程；请从每日任务或学习中心重新进入。');
+      const demonstration = demonstrationTaskIds.has(task.taskId);
       const ownRole = course.roleId === getProfile().roleId;
       head(content, course.title, (ownRole ? (task.required ? '本岗位必修课程' : '本岗位选修课程') : '跨岗位选学课程') + ' · 完成记录不代表知识已掌握。');
       const section = panel('本节学习材料'); section.id = 'linked-course'; section.classList.add('course-reading');
       section.setAttribute('data-course-required', String(task.required)); section.setAttribute('data-course-type', task.lessonType); section.setAttribute('data-course-phase', task.phase);
       const trackingNote = ownRole
-        ? (course.required ? '必修：计入当前岗位必修完成率和逾期统计。' : '选修：可自主学习和记录，不计入必修完成率或逾期，也不阻碍后续课程。')
+        ? (course.required ? '必修：计入本岗位课程自评完成率；每日任务完成与逾期单独统计。' : '选修：可自主学习和记录，不计入必修完成率或逾期，也不阻碍后续课程。')
         : '跨岗位选修：可自主学习和记录，不进入当前岗位必修完成率或逾期统计。';
       const outline = el('nav', 'course-outline'); outline.id = 'course-outline'; outline.setAttribute('aria-label', '本课内容导航');
-      [['course-knowledge', '知识结构'], ['course-explanation', '通俗讲解'], ['course-project', '项目实例'], ['course-worked-example', '完整例题'], ['course-exercise', '练习答案'], ['course-summary', '总结复习']].forEach(([id, label]) => {
+      const outlineItems = [['course-knowledge', '知识结构'], ['course-explanation', '通俗讲解'], ['course-project', '项目实例'], ['course-worked-example', '完整例题'], ['course-exercise', demonstration ? '先独立练习' : '练习答案']];
+      if (demonstration) outlineItems.push(['course-pilot-practice', '实践交付']);
+      outlineItems.push(['course-summary', '总结复习']);
+      outlineItems.forEach(([id, label]) => {
         outline.append(button(label, () => scrollToSection(id), {'data-course-jump': id}));
       });
       const knowledge = courseSection('course-knowledge', '知识结构与前置知识');
       knowledge.append(el('p', 'info-banner', (phaseLabels[course.phase] || '学习阶段') + ' · ' + (lessonTypeLabels[course.lessonType] || '课程类型') + ' · ' + trackingNote));
+      if (demonstration) {
+        const objectives = el('div'); objectives.id = 'course-objectives';
+        const tools = task.taskId === 'FTM-C-W02-D03' ? '本页可离线阅读和保存；本机运行教学测试需要已有Python和pytest，网页不会执行Python或自动安装。' : '用纸笔或本机文本编辑器即可；';
+        objectives.append(el('h3', '', '本课学习目标'), list(task.learningObjectives), el('p', 'stage-note', '建议约' + task.estimatedMinutes + '分钟。' + tools + '练习与实践自愿，不设置完成门槛。'));
+        knowledge.append(objectives);
+      }
       knowledge.append(el('h3', '', '开始前需要知道'), list(course.prerequisites));
       course.knowledgeStructure.forEach(group => knowledge.append(el('h3', '', group.title), list(group.points)));
       const explanation = courseSection('course-explanation', '通俗讲解');
@@ -311,10 +348,18 @@
       course.materials.forEach(material => project.append(el('h3', '', material.title), el('pre', 'lesson-material', material.text)));
       const example = course.workedExample;
       const worked = courseSection('course-worked-example', '完整例题：' + example.title);
-      worked.append(el('p', '', example.given), list(example.steps, true), el('h3', '', '答案解析'), el('p', 'deliverable', '例题答案：' + example.answer));
+      worked.append(el('p', '', example.given), list(example.steps, true), el('h3', '', '答案解析'), el(demonstration ? 'pre' : 'p', demonstration ? 'lesson-material' : 'deliverable', (task.taskId === 'FTM-C-W02-D03' ? '' : '例题答案：') + example.answer));
       const exercise = Curriculum.exercise(task.exerciseId);
       const exerciseSection = courseSection('course-exercise', '自主练习与参考答案');
-      if (exercise.knowledgeChecks) {
+      if (demonstration) {
+        exerciseSection.append(el('p', 'stage-note', '先在纸上或练习页独立作答，再按需要展开提示与解析。查看提示不填入答案、不产生学习事件，也不认定知识掌握。'));
+        if (exercise.knowledgeChecks) exerciseSection.append(el('h3', '', '基础理解题'), el('p', '', exercise.knowledgeChecks.understanding.question));
+        const exerciseHeading = task.taskId === demonstrationTaskId ? '独立应用练习（12帧）' :
+          !originalDemonstrationTaskIds.has(task.taskId) && exercise.knowledgeChecks ? '独立应用练习 · 应用分析题' : '独立应用练习';
+        exerciseSection.append(el('h3', '', exerciseHeading), el('pre', 'lesson-material', exercise.prompt),
+          button('进入练习并写下自己的答案', () => navigate('practice', {exercise: task.exerciseId, role: task.roleId}), {'data-pilot-write-answer': 'true'}));
+        const support = demonstrationReferences(exercise); exerciseSection.append(...support.hints, support.reference);
+      } else if (exercise.knowledgeChecks) {
         const foundation = exercise.knowledgeChecks.understanding, application = exercise.knowledgeChecks.application;
         exerciseSection.append(el('h3', '', '基础理解题'), el('p', '', foundation.question));
         const foundationAnswer = el('details', 'check-panel'); foundationAnswer.append(el('summary', '', '查看理解题参考答案'), el('p', '', foundation.answer)); exerciseSection.append(foundationAnswer);
@@ -330,23 +375,35 @@
         try { await copyText(genericStudyPrompt(task, course)); promptStatus.textContent = '已复制。可粘贴到你常用的任意 AI 工具。'; }
         catch (error) { promptStatus.textContent = '复制失败：' + error.message + '；你仍可手动阅读并复制本页内容。'; }
       }, {'data-generic-ai-prompt': 'true'}), promptStatus);
-      section.append(outline, knowledge, explanation, project, worked, exerciseSection, summarySection, aiSection, links(task));
+      section.append(outline, knowledge, explanation, project, worked, exerciseSection);
+      if (demonstration) {
+        const practice = Curriculum.practice(task.practiceId), preview = courseSection('course-pilot-practice', '独立实践：' + practice.title);
+        preview.append(list(practice.steps, true), el('h3', '', '交付物'), el('p', '', practice.deliverable), el('h3', '', '验收标准'), list(practice.acceptanceCriteria),
+          button('记录自己的实践结果', () => navigate('tasks', {practice: task.practiceId, role: task.roleId}), {'data-pilot-write-practice': 'true'}));
+        section.append(preview);
+      }
+      section.append(summarySection, aiSection, links(task));
       const completed = getProfile().learningProgressByRole[course.roleId].includes(courseId);
       const mark = button(completed ? '课程已完成' : '标记课程完成', () => {
         const saved = saveChange(candidate => { if (!candidate.learningProgressByRole[course.roleId].includes(courseId)) candidate.learningProgressByRole[course.roleId].push(courseId); }, '课程进度已保存。');
         if (saved) rerender();
       }, {'data-complete-linked-course': courseId}); mark.disabled = completed;
+      if (completed) section.append(button('撤销课程完成', () => {
+        const saved = saveChange(candidate => { candidate.learningProgressByRole[course.roleId] = candidate.learningProgressByRole[course.roleId].filter(id => id !== courseId); }, '已撤销当前课程完成；已有历史保留。');
+        if (saved) rerender();
+      }, {'data-undo-linked-course': courseId}));
       section.append(mark, el('p', 'stage-note', '标记课程完成只记录课程学习进度，不代表知识已掌握；本阶段不进行掌握评分。每日任务需按验收标准单独记录。')); content.append(section);
     }
     function exercise(content, exerciseId) {
       const exercise = Curriculum.exercise(exerciseId), task = taskFor('exerciseId', exerciseId);
       if (!exercise || !task) throw new Error('没有找到对应练习。');
+      const demonstration = demonstrationTaskIds.has(task.taskId);
       head(content, exercise.title, '离线自查练习；答案和评分标准供你核对，不会自动生成成绩或团队反馈。');
       const section = panel('练习题'); section.id = 'linked-exercise';
       if (exercise.knowledgeChecks) {
         section.append(el('h3', '', '基础理解题'), el('p', '', exercise.knowledgeChecks.understanding.question),
-          el('h3', '', '应用分析题'), el('p', '', exercise.knowledgeChecks.application.question));
-      } else section.append(el('p', '', exercise.prompt));
+          el('h3', '', '应用分析题'), el(demonstration ? 'pre' : 'p', demonstration ? 'lesson-material' : '', exercise.knowledgeChecks.application.question));
+      } else section.append(el(demonstration ? 'pre' : 'p', demonstration ? 'lesson-material' : '', exercise.prompt));
       const reference = el('details', 'check-panel'); reference.id = 'reference-answer';
       reference.append(el('summary', '', '查看参考答案与评分标准'), el('p', '', exercise.answer));
       if (exercise.explanation) reference.append(el('h3', '', '答案解析'), el('p', '', exercise.explanation));
@@ -356,7 +413,12 @@
       const label = el('label', 'field-label', exercise.knowledgeChecks ? '我的答案（请分别标记理解题和应用题）' : '我的答案'); label.setAttribute('for', 'practice-answer');
       const answer = el('textarea', 'note-field'); answer.id = 'practice-answer'; answer.value = previous ? previous.response : '';
       const status = el('p', 'stage-note', previous ? '已载入已保存的答案。' : '填写后手动保存。'); status.id = 'practice-save-state';
-      section.append(label, answer, button('保存练习结果', () => saveChange(candidate => candidate.exerciseResultsByRole[exercise.roleId].push({exerciseId, response: answer.value, savedAt: new Date().toISOString()}), '练习结果已保存在本机。', status)), status, reference, links(task)); content.append(section);
+      section.append(label, answer, button('保存练习结果', () => saveChange(candidate => candidate.exerciseResultsByRole[exercise.roleId].push({exerciseId, response: answer.value, savedAt: new Date().toISOString()}), '练习结果已保存在本机。', status)), status);
+      if (demonstration) {
+        section.append(el('p', 'stage-note', (task.taskId === demonstrationTaskId ? '先写自己的理解和划分。' : '先写自己的理解与练习结果。') + '需要帮助时自愿展开提示；无需先查看或完成练习才能标记课程完成。不会自动填入参考答案或生成掌握评分。'));
+        const support = demonstrationReferences(exercise); section.append(...support.hints, support.reference);
+      } else section.append(reference);
+      section.append(links(task)); content.append(section);
     }
     function practice(content, practiceId) {
       const practice = Curriculum.practice(practiceId), task = taskFor('practiceId', practiceId);
