@@ -4,17 +4,104 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
+  <meta name="description" content="FruitTrack 团队学习平台：选择岗位，学习项目相关知识。">
   <title>FruitTrack Team Hub</title>
   <style>
-    :root { color-scheme: light dark; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; background: #111713; color: #edf2ee; }
-    body { display: grid; min-height: 100vh; margin: 0; place-items: center; }
-    main { max-width: 34rem; margin: 1.5rem; padding: 2rem; border: 1px solid #303d34; border-radius: 1rem; background: #171f1a; text-align: center; }
-    p { margin: 0; color: #b1beb5; font-size: clamp(1rem, 2vw, 1.2rem); line-height: 1.8; }
+    :root {
+      color-scheme: light;
+      --page: #f0f3f0;
+      --panel: #fafcfb;
+      --ink: #17251d;
+      --muted: #4d5c52;
+      --brand: #1f6b40;
+      --brand-soft: #e5f1e8;
+      --line: #d5dfd8;
+      --shadow: 0 2px 4px rgb(21 43 28 / 3%), 0 12px 28px rgb(21 43 28 / 4%);
+      font-family: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+      background: var(--page);
+      color: var(--ink);
+    }
+    * { box-sizing: border-box; }
+    body { display: grid; min-height: 100vh; min-height: 100svh; margin: 0; padding: 48px 24px; place-items: center; }
+    main { width: 100%; max-width: 1080px; min-width: 0; }
+    .brand { display: inline-flex; align-items: center; gap: 12px; margin-bottom: 32px; color: var(--brand); font-size: 15px; font-weight: 650; }
+    .brand-mark { display: grid; width: 42px; height: 42px; border-radius: 12px; background: var(--brand); color: var(--page); font-size: 17px; font-weight: 700; place-items: center; }
+    h1 { margin: 0; font-size: clamp(1.9rem, 4vw, 2.75rem); font-weight: 700; line-height: 1.2; letter-spacing: -.035em; overflow-wrap: anywhere; }
+    .welcome { margin: 16px 0 0; color: var(--muted); font-size: 18px; line-height: 1.8; }
+    .role-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin: 32px 0 24px; }
+    .role-card { display: flex; min-width: 0; min-height: 180px; flex-direction: column; align-items: flex-start; padding: 22px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); box-shadow: var(--shadow); color: var(--ink); text-decoration: none; }
+    .role-letter { display: grid; width: 38px; height: 38px; margin-bottom: 24px; border-radius: 10px; background: var(--brand-soft); color: var(--brand); font-size: 18px; font-weight: 700; place-items: center; }
+    .role-name { font-size: 18px; font-weight: 650; line-height: 1.5; }
+    .role-action { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; color: var(--brand); font-size: 14px; line-height: 1.5; }
+    .role-card:hover { border-color: var(--brand); background: var(--brand-soft); }
+    .role-card:focus-visible { outline: 3px solid var(--brand); outline-offset: 4px; }
+    .guidance { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.8; }
+    footer { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--line); }
+    footer p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.8; }
+    @media (max-width: 900px) {
+      .role-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 600px) {
+      body { padding: 32px 20px; }
+      .brand { margin-bottom: 24px; }
+      .welcome { font-size: 16px; }
+      .role-grid { grid-template-columns: 1fr; gap: 12px; margin-top: 24px; }
+      .role-card { display: grid; min-height: 88px; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 18px; }
+      .role-letter { margin: 0; }
+      .role-name { font-size: 17px; }
+      .role-action { width: auto; margin: 0; }
+      .action-label { display: none; }
+      footer { margin-top: 24px; }
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --page: #11171a;
+        --panel: #1d2529;
+        --ink: #e9efec;
+        --muted: #b5c0bb;
+        --brand: #9adbb6;
+        --brand-soft: #20372b;
+        --line: #3a474c;
+        --shadow: none;
+      }
+    }
+    @media (forced-colors: active) {
+      .role-card:focus-visible { outline-color: Highlight; }
+    }
   </style>
 </head>
 <body>
   <main>
-    <p>请使用项目负责人分配的岗位专属链接。</p>
+    <header>
+      <div class="brand"><span class="brand-mark" aria-hidden="true">FT</span><span>团队学习平台</span></div>
+      <h1>FruitTrack Team Hub</h1>
+      <p class="welcome">选择自己的岗位，开始学习项目相关知识。</p>
+    </header>
+    <nav class="role-grid" aria-label="岗位选择">
+      <a class="role-card" href="online/a/">
+        <span class="role-letter">A</span><span class="role-name">数据集调研</span>
+        <span class="role-action"><span class="action-label">进入学习</span><span aria-hidden="true">→</span></span>
+      </a>
+      <a class="role-card" href="online/b/">
+        <span class="role-letter">B</span><span class="role-name">数据标注</span>
+        <span class="role-action"><span class="action-label">进入学习</span><span aria-hidden="true">→</span></span>
+      </a>
+      <a class="role-card" href="online/c/">
+        <span class="role-letter">C</span><span class="role-name">软件测试</span>
+        <span class="role-action"><span class="action-label">进入学习</span><span aria-hidden="true">→</span></span>
+      </a>
+      <a class="role-card" href="online/d/">
+        <span class="role-letter">D</span><span class="role-name">算法基础</span>
+        <span class="role-action"><span class="action-label">进入学习</span><span aria-hidden="true">→</span></span>
+      </a>
+      <a class="role-card" href="online/e/">
+        <span class="role-letter">E</span><span class="role-name">文档与成果</span>
+        <span class="role-action"><span class="action-label">进入学习</span><span aria-hidden="true">→</span></span>
+      </a>
+    </nav>
+    <p class="guidance">请优先选择自己分配的岗位，课程支持跨岗位浏览。</p>
+    <footer><p>学习记录保存在当前浏览器，请定期备份。</p></footer>
   </main>
 </body>
 </html>
